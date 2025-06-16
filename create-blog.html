@@ -1,0 +1,82 @@
+<!-- // create-blog.html – for Publishers and Admins to create blogs. -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Create Blog</title>
+  <link rel="stylesheet" href="assets/css/styles.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>Create New Blog</h1>
+    <button id="logoutBtn">Logout</button>
+
+    <form id="createBlogForm">
+      <label for="title">Title:</label><br />
+      <input type="text" id="title" required placeholder="Blog title" /><br /><br />
+
+      <label for="content">Content:</label><br />
+      <textarea id="content" rows="10" required placeholder="Write your blog content here..."></textarea><br /><br />
+
+      <label for="status">Status:</label><br />
+      <select id="status" required>
+        <option value="draft">Draft</option>
+        <option value="submitted">Submit for Review</option>
+      </select><br /><br />
+
+      <label><input type="checkbox" id="isPrivate" /> Make this blog private</label><br /><br />
+
+      <button type="submit">Create Blog</button>
+    </form>
+  </div>
+
+  <script>
+    const token = localStorage.getItem('token');
+    const role = localStorage.getItem('role');
+
+    if (!token || (role !== 'publisher' && role !== 'admin')) {
+      alert('Access denied. Only Publishers and Admins can create blogs.');
+      window.location.href = 'login.html';
+    }
+
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+      localStorage.clear();
+      window.location.href = 'login.html';
+    });
+
+    document.getElementById('createBlogForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const title = document.getElementById('title').value.trim();
+      const content = document.getElementById('content').value.trim();
+      const status = document.getElementById('status').value;
+      const isPrivate = document.getElementById('isPrivate').checked;
+
+      try {
+        const res = await fetch('http://localhost:5000/api/blogs/create', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({ title, content, status, private: isPrivate })
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+          alert('Blog created successfully!');
+          // Redirect based on role or action
+          window.location.href = 'dashboard.html';
+        } else {
+          alert(data.message || 'Failed to create blog');
+        }
+      } catch (err) {
+        alert('Server error while creating blog.');
+      }
+    });
+  </script>
+</body>
+</html>

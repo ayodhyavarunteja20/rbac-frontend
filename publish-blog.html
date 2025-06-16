@@ -1,0 +1,110 @@
+<!-- // publish-blog.html – for Admins and Publishers to publish submitted blogs. -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Publish Blogs</title>
+  <link rel="stylesheet" href="assets/css/styles.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>Publish Blogs</h1>
+    <button id="logoutBtn">Logout</button>
+
+    <table border="1" width="100%" id="blogsTable">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Title</th>
+          <th>Author</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <script>
+    const token = localStorage.getItem('token');
+    const role = localStorage.getItem('role');
+
+    if (!token || (role !== 'admin' && role !== 'publisher')) {
+      alert('Access denied. Only Admins and Publishers can access this page.');
+      window.location.href = 'login.html';
+    }
+
+    const blogsTableBody = document.querySelector('#blogsTable tbody');
+
+    async function fetchBlogs() {
+      try {
+        const res = await fetch('http://localhost:5000/api/blogs/mypending', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        const blogs = await res.json();
+
+        if (!res.ok) {
+          alert(blogs.message || 'Failed to load blogs');
+          return;
+        }
+
+        blogsTableBody.innerHTML = '';
+        if (blogs.length === 0) {
+          blogsTableBody.innerHTML = '<tr><td colspan="5">No blogs pending publication.</td></tr>';
+          return;
+        }
+
+        blogs.forEach(blog => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${blog.id}</td>
+            <td>${blog.title}</td>
+            <td>${blog.author}</td>
+            <td>${blog.status}</td>
+            <td>
+              <button onclick="publishBlog(${blog.id})">Publish</button>
+            </td>
+          `;
+          blogsTableBody.appendChild(tr);
+        });
+      } catch (err) {
+        alert('Server error while fetching blogs.');
+      }
+    }
+
+    async function publishBlog(blogId) {
+      if (!confirm('Are you sure you want to publish this blog?')) return;
+
+      try {
+        const res = await fetch(`http://localhost:5000/api/blogs/${blogId}/publish`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+          alert('Blog published successfully');
+          fetchBlogs();
+        } else {
+          alert(data.message || 'Failed to publish blog');
+        }
+      } catch (err) {
+        alert('Server error while publishing blog.');
+      }
+    }
+
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+      localStorage.clear();
+      window.location.href = 'login.html';
+    });
+
+    fetchBlogs();
+  </script>
+</body>
+</html>

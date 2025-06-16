@@ -1,0 +1,133 @@
+<!-- view-blogs.html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>View Blogs</title>
+  <link rel="stylesheet" href="assets/css/styles.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>Public Blogs</h1>
+    <button id="logoutBtn">Logout</button>
+    <div id="blogsList"></div>
+  </div>
+
+  <script>
+    const token = localStorage.getItem('token');
+
+    if (!token) {
+      alert('You need to login first!');
+      window.location.href = 'login.html';
+    }
+
+    async function fetchBlogs() {
+      try {
+        const res = await fetch('http://localhost:5000/api/blogs/public', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        const blogs = await res.json();
+
+        if (!res.ok) {
+          alert(blogs.message || 'Failed to load blogs');
+          return;
+        }
+
+        const container = document.getElementById('blogsList');
+        container.innerHTML = '';
+
+        if (blogs.length === 0) {
+          container.textContent = 'No public blogs available.';
+          return;
+        }
+
+        blogs.forEach(blog => {
+          const div = document.createElement('div');
+          div.classList.add('blog-post');
+          div.innerHTML = `
+            <h3>${blog.title}</h3>
+            <p><strong>Author:</strong> ${blog.author}</p>
+            <p>${blog.content.substring(0, 200)}...</p>
+          `;
+          container.appendChild(div);
+        });
+      } catch (err) {
+        alert('Server error while fetching blogs.');
+      }
+    }
+
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+      localStorage.clear();
+      window.location.href = 'login.html';
+    });
+
+    fetchBlogs();
+  </script>
+</body>
+</html> -->
+
+<!-- view-blogs.html -->
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>View Public Blogs</title>
+  <link rel="stylesheet" href="assets/css/styles.css" />
+</head>
+
+<body>
+  <div class="container">
+    <h1>Public Blogs</h1>
+    <div id="blogsContainer"></div>
+    <button id="logoutBtn">Logout</button>
+  </div>
+
+  <script>
+    const token = localStorage.getItem('token');
+    if (!token) {
+      alert("Please login first.");
+      window.location.href = "login.html";
+    }
+
+    async function fetchPublicBlogs() {
+      try {
+        const res = await fetch("http://localhost:5000/api/blogs/public", {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        const blogs = await res.json();
+        const container = document.getElementById('blogsContainer');
+        container.innerHTML = '';
+
+        if (!res.ok || blogs.length === 0) {
+          container.innerHTML = '<p>No public blogs available.</p>';
+          return;
+        }
+
+        blogs.forEach(blog => {
+          const blogDiv = document.createElement('div');
+          blogDiv.className = 'blog-item';
+          blogDiv.innerHTML = `
+        <h3>${blog.title}</h3>
+        <p><strong>Status:</strong> ${blog.status}</p>
+        <p>${blog.content}</p>
+      `;
+          container.appendChild(blogDiv);
+        });
+      } catch (error) {
+        alert('Error fetching blogs.');
+      }
+    }
+
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+      localStorage.clear();
+      window.location.href = 'login.html';
+    });
+
+    fetchPublicBlogs();
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,88 @@
+<!-- my-drafts.html -->
+ 
+<!DOCTYPE html>
+<html>
+<head>
+  <title>My Drafts</title>
+  <link rel="stylesheet" href="assets/css/styles.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>My Drafts & Submissions</h1>
+    <button id="logoutBtn">Logout</button>
+    <table border="1" width="100%" id="draftsTable">
+      <thead><tr><th>ID</th><th>Title</th><th>Status</th><th>Actions</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <script>
+    const token = localStorage.getItem('token');
+    const role = localStorage.getItem('role');
+    if (!token || role !== 'publisher') {
+      alert('Access denied.');
+      window.location.href = 'login.html';
+    }
+
+    async function fetchDrafts() {
+      const res = await fetch('http://localhost:5000/api/blogs/drafts', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const blogs = await res.json();
+      const tbody = document.querySelector('#draftsTable tbody');
+      tbody.innerHTML = '';
+
+      if (!res.ok || blogs.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4">No drafts found.</td></tr>';
+        return;
+      }
+
+      blogs.forEach(b => {
+        tbody.innerHTML += `
+          <tr>
+            <td>${b.id}</td>
+            <td>${b.title}</td>
+            <td>${b.status}</td>
+            <td>
+              ${b.status === 'draft' ? `<button onclick="submitForReview(${b.id})">Submit</button>` : ''}
+              <button onclick="publish(${b.id})">Publish as Public</button>
+            </td>
+          </tr>`;
+      });
+    }
+
+    async function submitForReview(id) {
+      await fetch(`http://localhost:5000/api/blogs/${id}/publish`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      fetchDrafts();
+    }
+
+    function publish(blogId) {
+  fetch(`http://localhost:5000/api/blogs/${blogId}/publish`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+  })
+  .then(res => res.json())
+  .then(data => {
+    alert(data.message || 'Published!');
+    fetchDrafts(); // refresh the list
+  })
+  .catch(err => {
+    alert('Error publishing blog');
+    console.error(err);
+  });
+}
+
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+      localStorage.clear(); window.location = 'login.html';
+    });
+
+    fetchDrafts();
+  </script>
+</body>
+</html>

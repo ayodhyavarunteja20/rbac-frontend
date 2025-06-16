@@ -1,0 +1,124 @@
+<!-- permissions.html -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Assign Permissions</title>
+  <link rel="stylesheet" href="assets/css/styles.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>Assign Permissions</h1>
+    <button onclick="logout()">Logout</button>
+
+    <form id="permissionForm">
+      <label for="userId">Select User:</label>
+      <select id="userId" required>
+        <option value="">-- Select User --</option>
+      </select>
+
+      <label for="feature">Select Feature:</label>
+      <select id="feature" required>
+        <option value="product">Product</option>
+        <option value="blog">Blog</option>
+        <option value="update">Update</option>
+      </select>
+
+      <div class="checkboxes">
+        <label><input type="checkbox" id="read" /> Read</label>
+        <label><input type="checkbox" id="write" /> Write</label>
+        <label><input type="checkbox" id="update" /> Update</label>
+        <label><input type="checkbox" id="delete" /> Delete</label>
+      </div>
+
+      <button type="submit">Assign Permissions</button>
+    </form>
+
+    <div id="message"></div>
+  </div>
+
+  <script>
+    const token = localStorage.getItem("token");
+    const userSelect = document.getElementById("userId");
+    const form = document.getElementById("permissionForm");
+    const messageDiv = document.getElementById("message");
+
+    async function fetchUsers() {
+      try {
+        const res = await fetch("http://localhost:5000/api/users", {
+          headers: {
+            "Authorization": `Bearer ${token}`
+          },
+        });
+
+        if (!res.ok) throw new Error("Unauthorized");
+
+        const users = await res.json();
+
+        // Show only users who are NOT superadmin
+        users
+          .filter(user => user.role !== "superadmin")
+          .forEach((user) => {
+            const option = document.createElement("option");
+            option.value = user.id;
+            option.textContent = `${user.username} (${user.role})`;
+            userSelect.appendChild(option);
+          });
+      } catch (err) {
+        messageDiv.textContent = "Failed to load users.";
+      }
+    }
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const userId = userSelect.value;
+      const feature = document.getElementById("feature").value;
+      const can_read = document.getElementById("read").checked;
+      const can_write = document.getElementById("write").checked;
+      const can_update = document.getElementById("update").checked;
+      const can_delete = document.getElementById("delete").checked;
+
+      try {
+        const res = await fetch("http://localhost:5000/api/permissions/assign", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            user_id: userId,
+            feature,
+            can_read,
+            can_write,
+            can_update,
+            can_delete,
+          }),
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+          messageDiv.style.color = "green";
+          messageDiv.textContent = data.message;
+        } else {
+          messageDiv.style.color = "red";
+          messageDiv.textContent = data.error || "Failed to assign permissions.";
+        }
+      } catch (error) {
+        messageDiv.style.color = "red";
+        messageDiv.textContent = "Error assigning permissions.";
+      }
+    });
+
+    function logout() {
+      localStorage.clear();
+      window.location.href = "login.html";
+    }
+
+    fetchUsers();
+  </script>
+</body>
+</html>

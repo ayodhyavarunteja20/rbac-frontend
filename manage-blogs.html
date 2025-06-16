@@ -1,0 +1,96 @@
+<!-- manage-blogs.html -->
+ 
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Manage Blogs (Admin)</title>
+  <link rel="stylesheet" href="assets/css/styles.css"/>
+</head>
+<body>
+  <div class="container">
+    <h1>All Blogs</h1>
+    <button id="logoutBtn">Logout</button>
+    <table border="1" width="100%" id="blogsTable">
+      <thead><tr><th>ID</th><th>Title</th><th>Status</th><th>Actions</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <script>
+    const token = localStorage.getItem('token');
+    const role = localStorage.getItem('role');
+    if (!token || role !== 'admin') {
+      alert('Access denied.');
+      window.location.href = 'login.html';
+    }
+
+    async function fetchBlogs() {
+      const res = await fetch('http://localhost:5000/api/blogs/all', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const blogs = await res.json();
+      const tbody = document.querySelector('#blogsTable tbody');
+      tbody.innerHTML = '';
+
+      if (!res.ok || blogs.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4">No blogs found.</td></tr>';
+        return;
+      }
+
+      blogs.forEach(b => {
+        tbody.innerHTML += `
+          <tr>
+            <td>${b.id}</td>
+            <td>${b.title}</td>
+            <td>${b.status}</td>
+            <td>
+              <button onclick="deleteBlog(${b.id})">Delete</button>
+              <button onclick="editBlog(${b.id}, '${b.title.replace(/'/g,"\\'")}', '${b.content.replace(/'/g,"\\'")}', '${b.status}')">Edit</button>
+            </td>
+          </tr>`;
+      });
+    }
+
+    function deleteBlog(id) {
+      if (!confirm('Are you sure?')) return;
+      fetch(`http://localhost:5000/api/blogs/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      .then(res => res.json())
+      .then(data => {
+        alert(data.message);
+        fetchBlogs();
+      });
+    }
+
+    function editBlog(id, title, content, status) {
+      const newTitle = prompt('Title:', title);
+      const newContent = prompt('Content:', content);
+      const newStatus = prompt('Status:', status);
+      if (!newTitle || !newContent || !newStatus) return;
+
+      fetch(`http://localhost:5000/api/blogs/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ title: newTitle, content: newContent, status: newStatus })
+      })
+      .then(res => res.json())
+      .then(data => {
+        alert(data.message);
+        fetchBlogs();
+      });
+    }
+
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+      localStorage.clear();
+      window.location = 'login.html';
+    });
+
+    fetchBlogs();
+  </script>
+</body>
+</html>

@@ -1,0 +1,220 @@
+<!-- review-blogs.html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Review Blogs</title>
+  <link rel="stylesheet" href="assets/css/styles.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>Review Blogs</h1>
+    <button id="logoutBtn">Logout</button>
+    <table border="1" width="100%" id="blogsTable">
+      <thead>
+        <tr>
+          <th>ID</th><th>Title</th><th>Author</th><th>Status</th><th>Actions</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <script>
+    const token = localStorage.getItem('token');
+    const role = localStorage.getItem('role');
+
+    if (!token || role !== 'reviewer') {
+      alert('Access denied. Only Reviewers can access this page.');
+      window.location.href = 'login.html';
+    }
+
+    const blogsTableBody = document.querySelector('#blogsTable tbody');
+
+    async function fetchBlogs() {
+      try {
+        const res = await fetch('http://localhost:5000/api/blogs/pending', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const blogs = await res.json();
+
+        if (!res.ok) {
+          alert(blogs.message || 'Failed to load blogs');
+          return;
+        }
+
+        blogsTableBody.innerHTML = '';
+        blogs.forEach(blog => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${blog.id}</td>
+            <td>${blog.title}</td>
+            <td>${blog.author}</td>
+            <td>${blog.status}</td>
+            <td>
+              <button onclick="reviewBlog(${blog.id}, true)">Approve</button>
+              <button onclick="reviewBlog(${blog.id}, false)">Reject</button>
+              <button onclick="showCorrectionPrompt(${blog.id})">Add Correction</button>
+            </td>
+          `;
+          blogsTableBody.appendChild(tr);
+        });
+      } catch (err) {
+        alert('Server error while fetching blogs.');
+      }
+    }
+
+    async function reviewBlog(blogId, approve) {
+      try {
+        const res = await fetch(`http://localhost:5000/api/blogs/${blogId}/review`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({ approved: approve })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          alert(`Blog ${approve ? 'approved' : 'rejected'} successfully`);
+          fetchBlogs();
+        } else {
+          alert(data.message || 'Failed to review blog');
+        }
+      } catch (err) {
+        alert('Server error while reviewing blog.');
+      }
+    }
+
+    function showCorrectionPrompt(blogId) {
+      const correction = prompt('Enter correction/comments for this blog:');
+      if (correction !== null) {
+        sendCorrection(blogId, correction);
+      }
+    }
+
+    async function sendCorrection(blogId, correction) {
+      try {
+        const res = await fetch(`http://localhost:5000/api/blogs/${blogId}/correction`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({ correction })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          alert('Correction info sent successfully');
+        } else {
+          alert(data.message || 'Failed to send correction info');
+        }
+      } catch (err) {
+        alert('Server error while sending correction info.');
+      }
+    }
+
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+      localStorage.clear();
+      window.location.href = 'login.html';
+    });
+
+    fetchBlogs();
+  </script>
+</body>
+</html> -->
+
+
+
+
+<!-- review-blogs.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Review Blogs</title>
+  <link rel="stylesheet" href="assets/css/styles.css"/>
+</head>
+<body>
+  <div class="container">
+    <h1>Review Blogs</h1>
+    <button id="logoutBtn">Logout</button>
+    <table border="1" width="100%" id="blogsTable">
+      <thead>
+        <tr><th>ID</th><th>Title</th><th>Author</th><th>Status</th><th>Actions</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <script>
+    const token = localStorage.getItem('token');
+    const role = localStorage.getItem('role');
+    if (!token || role !== 'reviewer') {
+      alert('Access denied.');
+      window.location.href = 'login.html';
+    }
+
+    async function fetchPending() {
+      const res = await fetch('http://localhost:5000/api/blogs/pending', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const blogs = await res.json();
+      const tbody = document.querySelector('#blogsTable tbody');
+      tbody.innerHTML = '';
+      if (!res.ok || blogs.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5">No blogs pending review.</td></tr>';
+        return;
+      }
+      blogs.forEach(b => {
+        tbody.innerHTML += `
+          <tr>
+            <td>${b.id}</td>
+            <td>${b.title}</td>
+            <td>${b.author_id}</td>
+            <td>${b.status}</td>
+            <td>
+              <button onclick="approveBlog(${b.id})">Approve</button>
+              <button onclick="rejectBlog(${b.id})">Reject</button>
+            </td>
+          </tr>`;
+      });
+    }
+
+    function approveBlog(id) {
+      fetch(`http://localhost:5000/api/blogs/${id}/approve`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      .then(r => r.json())
+      .then(() => { alert('Blog approved'); fetchPending(); })
+      .catch(() => alert('Error approving blog'));
+    }
+
+    function rejectBlog(id) {
+      const notes = prompt('Enter correction notes:');
+      if (!notes) return;
+      fetch(`http://localhost:5000/api/blogs/${id}/reject`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ correction_notes: notes })
+      })
+      .then(r => r.json())
+      .then(() => { alert('Blog rejected with notes'); fetchPending(); })
+      .catch(() => alert('Error rejecting blog'));
+    }
+
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+      localStorage.clear();
+      window.location.href = 'login.html';
+    });
+
+    fetchPending();
+  </script>
+</body>
+</html>

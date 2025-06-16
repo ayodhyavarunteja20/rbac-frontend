@@ -1,0 +1,69 @@
+<!-- assign-permissions.html -->
+ 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Assign Permissions</title>
+  <link rel="stylesheet" href="assets/css/styles.css" />
+</head>
+<body>
+  <div class="container">
+    <h2>Assign Permissions (Super Admin)</h2>
+
+    <label>User ID:</label>
+    <input type="number" id="userId" placeholder="Enter user ID" />
+
+    <label>Feature:</label>
+    <select id="feature">
+      <option value="product">Product</option>
+      <option value="blog">Blog</option>
+      <option value="update">Update</option>
+    </select>
+
+    <label><input type="checkbox" id="canRead" /> Read</label>
+    <label><input type="checkbox" id="canWrite" /> Write</label>
+    <label><input type="checkbox" id="canUpdate" /> Update</label>
+    <label><input type="checkbox" id="canDelete" /> Delete</label>
+
+    <button onclick="assignPermissions()">Assign</button>
+
+    <div id="message"></div>
+  </div>
+
+  <script>
+    const token = localStorage.getItem('token');
+
+    async function assignPermissions() {
+      const user_id = document.getElementById('userId').value;
+      const feature = document.getElementById('feature').value;
+      const can_read = document.getElementById('canRead').checked;
+      const can_write = document.getElementById('canWrite').checked;
+      const can_update = document.getElementById('canUpdate').checked;
+      const can_delete = document.getElementById('canDelete').checked;
+
+      const payload = { user_id, feature, can_read, can_write, can_update, can_delete };
+
+      try {
+        const res = await fetch('http://localhost:5000/api/permissions/assign', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(payload),
+        });
+
+        const data = await res.json();
+
+        document.getElementById('message').innerText =
+          res.ok ? 'Permissions assigned successfully!' : '❌ ' + data.error;
+      } catch (err) {
+        document.getElementById('message').innerText = '❌ Failed to assign permissions';
+        console.error(err);
+      }
+    }
+  </script>
+</body>
+</html>
